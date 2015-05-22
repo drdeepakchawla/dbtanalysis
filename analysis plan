@@ -1,0 +1,856 @@
+---
+title: "Final Report DBT"
+author: "Deepak Chawla"
+date: "Friday, May 08, 2015"
+output:
+  html_document:
+    toc: yes
+---
+
+Data preparation
+==================
+```{r, echo=TRUE, message=TRUE}
+library(psych)
+library(RODBC)
+library(ggplot2)
+conn <- odbcConnect(dsn="Jaundice data", uid="db_91e8f774_29f1_43bf_b2fd_eedf66b7beff_ExternalReader", pwd="Ei^M^Sg6A9ghP6M")
+combined <- sqlQuery(conn, 'SELECT * from "combined"')
+combined$age.psb <- difftime(combined$"Date and time of PSB", combined$"Date and time of birth", units = "hours")
+combined$age.psb <- as.numeric(combined$age.psb)
+dbt <- subset(combined, combined$"Peak serum bilirubin">20 | (combined$"Gestation by LMP">34 & combined$"Gestation by LMP"<38 & combined$age.psb<24 & combined$"Peak serum bilirubin">15) | (combined$"Gestation by LMP">34 & combined$"Gestation by LMP"<38 & combined$age.psb>=24 & combined$age.psb<36 & combined$"Peak serum bilirubin">16) | (combined$"Gestation by LMP">34 & combined$"Gestation by LMP"<38 & combined$age.psb>=36 & combined$age.psb<48 & combined$"Peak serum bilirubin">17) | (combined$"Gestation by LMP">=38 & combined$age.psb<24 & combined$"Peak serum bilirubin">16.5) |(combined$"Gestation by LMP">=38 & combined$age.psb>=24 & combined$age.psb<36 & combined$"Peak serum bilirubin">18) | (combined$"Gestation by LMP">=38 & combined$age.psb>=36 & combined$age.psb<48 & combined$"Peak serum bilirubin">19))
+names(dbt) <- make.names(names(dbt), unique=TRUE)
+```
+
+Baseline maternal information
+==============================
+```{r, echo=TRUE, message=TRUE}
+#First born baby
+table(dbt$First.liveborn.baby)
+addmargins(round(100*prop.table(table(dbt$First.liveborn.baby)),1))
+#Multiple pregnancy
+table(dbt$Multiple.pregnancy)
+addmargins(round(100*prop.table(table(dbt$Multiple.pregnancy)),1))
+#At least 3 antenatal visits
+table(dbt$At.least.3.antenatal.visits)
+addmargins(round(100*prop.table(table(dbt$At.least.3.antenatal.visits)),1))
+#Thyroid disorder
+table(dbt$Thyroid.disorder)
+addmargins(round(100*prop.table(table(dbt$Thyroid.disorder)),1))
+#Diabetes mellitus
+table(dbt$Diabetes.mellitus)
+addmargins(round(100*prop.table(table(dbt$Diabetes.mellitus)),1))
+#HBsAg+
+table(dbt$HBsAg.positive)
+addmargins(round(100*prop.table(table(dbt$HBsAg.positive)),1))
+#HIV+
+table(dbt$HIV.positive)
+addmargins(round(100*prop.table(table(dbt$HIV.positive)),1))
+#Pregnancy induced hypertension
+table(dbt$Pregnancy.induced.hypertension)
+addmargins(round(100*prop.table(table(dbt$Pregnancy.induced.hypertension)),1))
+#Antepartum hemorrhage
+table(dbt$Antepartum.hemorrhage)
+addmargins(round(100*prop.table(table(dbt$Antepartum.hemorrhage)),1))
+#Eclampsia
+table(dbt$Eclampsia)
+addmargins(round(100*prop.table(table(dbt$Eclampsia)),1))
+#Preterm rupture of membranes
+table(dbt$Preterm.rupture.of.membranes)
+addmargins(round(100*prop.table(table(dbt$Preterm.rupture.of.membranes)),1))
+#Clinical chorioamnionitis
+table(dbt$Clinical.information)
+addmargins(round(100*prop.table(table(dbt$Clinical.chorioamnionitis)),1))
+#C section
+table(dbt$C.section)
+addmargins(round(100*prop.table(table(dbt$C.section)),1))
+#PPV at birth
+table(dbt$PPV.at.birth)
+addmargins(round(100*prop.table(table(dbt$PPV.at.birth)),1))
+#Chest compression at birth
+table(dbt$Chest.compression.at.birth)
+addmargins(round(100*prop.table(table(dbt$Chest.compression.at.birth)),1))
+#Epinephrine at birth
+table(dbt$Epinephrine.at.birth)
+addmargins(round(100*prop.table(table(dbt$Epinephrine.at.birth)),1))
+#Saline bolus at birth
+table(dbt$Saline.bolus.at.birth)
+addmargins(round(100*prop.table(table(dbt$Saline.bolus.at.birth)),1))
+#Intubation at birth
+table(dbt$Intubation.at.birth)
+addmargins(round(100*prop.table(table(dbt$Intubation.at.birth)),1))
+#Apgar score at 1 minute
+stem(dbt$Apgar.score.at.1.minute)
+describe(dbt$Apgar.score.at.1.minute)
+summary(dbt$Apgar.score.at.1.minute)
+#Apgar score at 5 minute
+stem(dbt$Apgar.score.at.5.minute)
+describe(dbt$Apgar.score.at.5.minute)
+summary(dbt$Apgar.score.at.5.minute)
+```
+
+Baseline neonatal information
+==============================
+```{r, echo=TRUE, message=TRUE}
+#Birth weight
+stem(dbt$Birth.weight..g.)
+hist(dbt$Birth.weight..g., xlab = "Birth weight (g)", main="")
+plot(density(dbt$Birth.weight..g.), main="Density plot Birth weight")
+shapiro.test(dbt$Birth.weight..g.)
+describe(dbt$Birth.weight..g.)
+summary(dbt$Birth.weight..g.)
+#Gestation
+stem(dbt$Gestation.by.LMP)
+hist(dbt$Gestation.by.LMP, xlab = "Gestation (completed weeks)", main="")
+shapiro.test(dbt$Gestation.by.LMP)
+describe(dbt$Gestation.by.LMP)
+summary(dbt$Gestation.by.LMP)
+#Head circumference at birth
+stem(dbt$Head.circumference.at.birth)
+hist(dbt$Head.circumference.at.birth, xlab = "Head circumference at birth", main="")
+shapiro.test(dbt$Head.circumference.at.birth)
+describe(dbt$Head.circumference.at.birth)
+summary(dbt$Head.circumference.at.birth)
+#Male baby
+table(dbt$Male.baby)
+addmargins(round(100*prop.table(table(dbt$Male.baby)),1))
+#NICU care more than 24 h
+table(dbt$NICU.care.more.than.24.h)
+addmargins(round(100*prop.table(table(dbt$NICU.care.more.than.24.h)),1))
+#Oxygen after birth resusictation
+table(dbt$Oxygen.after.birth.resusictation)
+addmargins(round(100*prop.table(table(dbt$Oxygen.after.birth.resusictation)),1))
+#Nasal CPAP or ventilation
+table(dbt$Nasal.CPAP.or.ventilation)
+addmargins(round(100*prop.table(table(dbt$Nasal.CPAP.or.ventilation)),1))
+#ET ventilation
+table(dbt$ET.ventilation)
+addmargins(round(100*prop.table(table(dbt$ET.ventilation)),1))
+#Antibotics for more than 3 days
+table(dbt$Antibotics.for.more.than.3.days)
+addmargins(round(100*prop.table(table(dbt$Antibotics.for.more.than.3.days)),1))
+#Seizures
+table(dbt$Seizures)
+addmargins(round(100*prop.table(table(dbt$Seizures)),1))
+#Hypoglycemia
+table(dbt$Hypoglycemia)
+addmargins(round(100*prop.table(table(dbt$Hypoglycemia)),1))
+#Inotropic support
+table(dbt$Inotropic.support)
+addmargins(round(100*prop.table(table(dbt$Inotropic.support)),1))
+#Asymptomatic polycythemia
+table(dbt$Asymptomatic.polycythemia)
+addmargins(round(100*prop.table(table(dbt$Asymptomatic.polycythemia)),1))
+#Hypernatremia
+table(dbt$Hypernatremia)
+addmargins(round(100*prop.table(table(dbt$Hypernatremia)),1))
+#Early onset sepsis
+table(dbt$Early.onset.sepsis)
+addmargins(round(100*prop.table(table(dbt$Early.onset.sepsis)),1))
+#Late onset sepsis
+table(dbt$Late.onset.sepsis)
+addmargins(round(100*prop.table(table(dbt$Late.onset.sepsis)),1))
+#Seizures
+table(dbt$Seizures)
+addmargins(round(100*prop.table(table(dbt$Seizures)),1))
+```
+
+Family information
+==============================
+```{r, echo=TRUE, message=TRUE}
+#Mother age
+stem(dbt$Mother.age)
+hist(dbt$Mother.age, xlab = "Mother age", main="")
+plot(density(dbt$Mother.age), main="Density plot Mother age")
+shapiro.test(dbt$Mother.age)
+describe(dbt$Mother.age)
+summary(dbt$Mother.age)
+#Father age
+stem(dbt$Father.age)
+hist(dbt$Father.age, xlab = "Father age", main="")
+shapiro.test(dbt$Father.age)
+describe(dbt$Father.age)
+summary(dbt$Father.age)
+#Mother education
+addmargins(table(dbt$Mother.education))
+addmargins(round(100*prop.table(table(dbt$Mother.education)),1))
+#Father education
+addmargins(table(dbt$Father.education))
+addmargins(round(100*prop.table(table(dbt$Father.education)),1))
+#Mother occupation
+addmargins(table(dbt$Mother.occupation))
+addmargins(round(100*prop.table(table(dbt$Mother.occupation)),1))
+#Father occupation
+addmargins(table(dbt$Father.occupation))
+addmargins(round(100*prop.table(table(dbt$Father.occupation)),1))
+#Family assets
+addmargins(table(dbt$Electricity))
+addmargins(round(100*prop.table(table(dbt$Electricity)),1))
+addmargins(table(dbt$Pressure.cooker))
+addmargins(round(100*prop.table(table(dbt$Pressure.cooker)),1))
+addmargins(table(dbt$Mattress))
+addmargins(round(100*prop.table(table(dbt$Mattress)),1))
+addmargins(table(dbt$Cot.or.bed))
+addmargins(round(100*prop.table(table(dbt$Cot.or.bed)),1))
+addmargins(table(dbt$Chair))
+addmargins(round(100*prop.table(table(dbt$Chair)),1))
+addmargins(table(dbt$Electric.fan))
+addmargins(round(100*prop.table(table(dbt$Electric.fan)),1))
+addmargins(table(dbt$Table))
+addmargins(round(100*prop.table(table(dbt$Table)),1))
+addmargins(table(dbt$BW.television))
+addmargins(round(100*prop.table(table(dbt$BW.television)),1))
+addmargins(table(dbt$Radio))
+addmargins(round(100*prop.table(table(dbt$Radio)),1))
+addmargins(table(dbt$Sewing.machine))
+addmargins(round(100*prop.table(table(dbt$Sewing.machine)),1))
+addmargins(table(dbt$Color.television))
+addmargins(round(100*prop.table(table(dbt$Color.television)),1))
+addmargins(table(dbt$Any.other.telephone))
+addmargins(round(100*prop.table(table(dbt$Any.other.telephone)),1))
+addmargins(table(dbt$Mobile.telephone))
+addmargins(round(100*prop.table(table(dbt$Mobile.telephone)),1))
+addmargins(table(dbt$Refrigerator))
+addmargins(round(100*prop.table(table(dbt$Refrigerator)),1))
+addmargins(table(dbt$Computer))
+addmargins(round(100*prop.table(table(dbt$Computer)),1))
+addmargins(table(dbt$Bicycle))
+addmargins(round(100*prop.table(table(dbt$Bicycle)),1))
+addmargins(table(dbt$Watch.or.clock))
+addmargins(round(100*prop.table(table(dbt$Watch.or.clock)),1))
+addmargins(table(dbt$Animal.driven.cart))
+addmargins(round(100*prop.table(table(dbt$Animal.driven.cart)),1))
+addmargins(table(dbt$Motorcycle.or.scooter))
+addmargins(round(100*prop.table(table(dbt$Motorcycle.or.scooter)),1))
+addmargins(table(dbt$Water.pump))
+addmargins(round(100*prop.table(table(dbt$Water.pump)),1))
+addmargins(table(dbt$Car))
+addmargins(round(100*prop.table(table(dbt$Car)),1))
+addmargins(table(dbt$Tractor))
+addmargins(round(100*prop.table(table(dbt$Tractor)),1))
+addmargins(table(dbt$Thresher))
+addmargins(round(100*prop.table(table(dbt$Thresher)),1))
+```
+
+Jaundice information
+==============================
+```{r, echo=TRUE, message=TRUE}
+#Peak serum bilirubin
+stem(dbt$Peak.serum.bilirubin)
+hist(dbt$Peak.serum.bilirubin, xlab = "Peak serum bilirubin", main="")
+plot(density(dbt$Peak.serum.bilirubin), main="Density plot Peak serum bilirubin")
+shapiro.test(dbt$Peak.serum.bilirubin)
+describe(dbt$Peak.serum.bilirubin)
+summary(dbt$Peak.serum.bilirubin)
+ggplot(dbt, aes(x=dbt$Peak.serum.bilirubin))+
+  geom_histogram(aes(y=..density..),fill="yellow", color="black")+
+  xlab("Peak serum bilirubin")+
+  geom_density()+
+  xlim(0,40)+
+  theme_bw()
+#Peak transcutaneous bilirubin
+stem(dbt$Peak.TcB)
+hist(dbt$Peak.TcB, xlab = "Peak transcutaneous bilirubin", main="")
+shapiro.test(dbt$Peak.TcB)
+describe(dbt$Peak.TcB)
+summary(dbt$Peak.TcB)
+ggplot(dbt, aes(x=dbt$Peak.TcB))+
+  geom_histogram(aes(y=..density..),fill="yellow", color="black")+
+  xlab("Peak transcutaneous bilirubin")+
+  geom_density()+
+  xlim(0,40)+
+  theme_bw()
+#Time to peak serum bilirubin
+dbt$hours.to.psb <- as.numeric(difftime(dbt$Date.and.time.of.PSB,dbt$Date.and.time.of.birth, units = "hours"))
+stem(dbt$hours.to.psb)
+hist(dbt$hours.to.psb, xlab = "Age at peak serum bilirubin (hours)", main="")
+shapiro.test(dbt$hours.to.psb)
+describe(dbt$hours.to.psb)
+summary(dbt$hours.to.psb)
+ggplot(dbt, aes(x=dbt$hours.to.psb))+
+  geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  xlab("Age at peak serum bilirubin (hours)")+
+  geom_density()+
+  xlim(0,300)+
+  theme_bw()
+#Time at start of phototherapy
+dbt$hours.to.ptx <- as.numeric(difftime(dbt$Date.and.time.of.phototherapy.start,dbt$Date.and.time.of.birth, units = "hours"))
+stem(dbt$hours.to.ptx)
+hist(dbt$hours.to.ptx, xlab = "Age at starting phototherapy (hours)", main="")
+shapiro.test(dbt$hours.to.ptx)
+describe(dbt$hours.to.ptx)
+summary(dbt$hours.to.ptx)
+ggplot(dbt, aes(x=dbt$hours.to.ptx))+
+  geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  xlab("Age at starting phototherapy (hours)")+
+  geom_density()+
+  xlim(0,300)+
+  theme_bw()
+#Need of exchange transfusion
+addmargins(table(dbt$Exchange.transfusion))
+addmargins(round(100*prop.table(table(dbt$Exchange.transfusion)),1))
+#Baby blood group
+addmargins(table(dbt$Baby.blood.group))
+addmargins(round(100*prop.table(table(dbt$Baby.blood.group)),1))
+#Mother blood group
+addmargins(table(dbt$Mother.blood.group))
+addmargins(round(100*prop.table(table(dbt$Mother.blood.group)),1))
+#DCT
+addmargins(table(dbt$DCT.positive))
+addmargins(round(100*prop.table(table(dbt$DCT.positive)),1))
+#G6PD def
+addmargins(table(dbt$G6PD.deficient))
+addmargins(round(100*prop.table(table(dbt$G6PD.deficient)),1))
+#Retic count
+stem(dbt$Reticulocyte.count)
+hist(dbt$hours.to.ptx, xlab = "Reticulocyte count", main="")
+shapiro.test(dbt$Reticulocyte.count)
+describe(dbt$Reticulocyte.count)
+summary(dbt$Reticulocyte.count)
+ggplot(dbt, aes(x=dbt$Reticulocyte.count))+
+  geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  xlab("Reticulocyte count")+
+  geom_density()+
+  xlim(0,20)+
+  theme_bw()
+#Hemolysis
+addmargins(table(dbt$Hemolysis.in.PS))
+addmargins(round(100*prop.table(table(dbt$Hemolysis.in.PS)),1))
+#Cause of jaundice
+addmargins(table(dbt$Cause.of.jaundice))
+addmargins(round(100*prop.table(table(dbt$Cause.of.jaundice)),1))
+#Serum albumin
+stem(dbt$Serum.albumin)
+hist(dbt$hours.to.ptx, xlab = "Serum albumin", main="")
+shapiro.test(dbt$Serum.albumin)
+describe(dbt$Serum.albumin)
+summary(dbt$Serum.albumin)
+ggplot(dbt, aes(x=dbt$Serum.albumin))+
+  geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  xlab("Serum albumin")+
+  geom_density()+
+  xlim(2,5)+
+  theme_bw()
+#Duration of phototherapy
+stem(dbt$Duration.of.phototherapy..h.)
+hist(dbt$Duration.of.phototherapy..h., xlab = "Duration of phototherapy", main="")
+shapiro.test(dbt$Duration.of.phototherapy..h.)
+describe(dbt$Duration.of.phototherapy..h.)
+summary(dbt$Duration.of.phototherapy..h.)
+ggplot(dbt, aes(x=dbt$Duration.of.phototherapy..h.))+
+  geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  xlab("Duration of phototherapy")+
+  geom_density()+
+  xlim(0,480)+
+  theme_bw()
+#Phenobarbitone
+addmargins(table(dbt$Phenobarbitone))
+addmargins(round(100*prop.table(table(dbt$Phenobarbitone)),1))
+#IVIG
+addmargins(table(dbt$IVIG))
+addmargins(round(100*prop.table(table(dbt$IVIG)),1))
+```
+
+Discharge information
+==============================
+```{r, echo=TRUE, message=TRUE}
+#BERA
+addmargins(table(dbt$Discharge.information.BERA))
+addmargins(round(100*prop.table(table(dbt$Discharge.information.BERA)),1))
+#MRI BIND
+addmargins(table(dbt$MRI.BIND))
+addmargins(round(100*prop.table(table(dbt$MRI.BIND)),1))
+#MRI abnormality
+addmargins(table(dbt$MRI.abnormality))
+addmargins(round(100*prop.table(table(dbt$MRI.abnormality)),1))
+#Mental status of baby
+addmargins(table(dbt$Mental.status.of.baby))
+addmargins(round(100*prop.table(table(dbt$Mental.status.of.baby)),1))
+#Muscle tone of baby
+addmargins(table(dbt$Muscle.tone.of.baby))
+addmargins(round(100*prop.table(table(dbt$Muscle.tone.of.baby)),1))
+#Cry of baby
+addmargins(table(dbt$Cry.of.baby))
+addmargins(round(100*prop.table(table(dbt$Cry.of.baby)),1))
+#Composite outcome
+dbt$abn.outcome <- "."
+dbt$abn.outcome[dbt$Discharge.information.BERA=="Abnormal" | dbt$MRI.BIND=="Yes" | dbt$Mental.status.of.baby=="Abnormal" | dbt$Muscle.tone.of.baby=="Abnormal" | dbt$Cry.of.baby=="Abnormal"] <- 1
+dbt$abn.outcome [dbt$abn.outcome=="."] <- 0
+addmargins(table(dbt$abn.outcome))
+addmargins(round(100*prop.table(table(dbt$abn.outcome)),1))
+#Duration of stay
+dbt$age.at.discharge <- as.numeric(difftime(dbt$Date.of.discharge,dbt$Date.and.time.of.birth, units = "days"))
+stem(dbt$age.at.discharge)
+hist(dbt$age.at.discharge, xlab = "Age at discharge (days)", main="")
+shapiro.test(dbt$age.at.discharge)
+describe(dbt$age.at.discharge)
+summary(dbt$age.at.discharge)
+ggplot(dbt, aes(x=dbt$age.at.discharge))+
+  geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  xlab("Age at discharge (days)")+
+  geom_density()+
+  xlim(0,28)+
+  theme_bw()
+```
+
+BERA information
+==============================
+```{r, echo=TRUE, message=TRUE}
+#Right ear wave 1 latency
+stem(dbt$Right.ear.wave.I.latency[dbt$Right.ear.wave.I.latency<999])
+hist(dbt$Right.ear.wave.I.latency[dbt$Right.ear.wave.I.latency<999], xlab = "Right ear wave 1 latency", main="")
+shapiro.test(dbt$Right.ear.wave.I.latency[dbt$Right.ear.wave.I.latency<999])
+describe(dbt$Right.ear.wave.I.latency[dbt$Right.ear.wave.I.latency<999])
+summary(dbt$Right.ear.wave.I.latency[dbt$Right.ear.wave.I.latency<999])
+#ggplot(dbt[dbt$Right.ear.wave.I.latency<999], aes(x=dbt$Right.ear.wave.I.latency))+
+  #geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  #xlab("Right ear wave 1 latency")+
+  #geom_density()+
+  #xlim(0,3)+
+  #theme_bw()
+
+#Right wave 3 latency
+stem(dbt$Right.ear.wave.III.latency[dbt$Right.ear.wave.III.latency<999])
+hist(dbt$Right.ear.wave.III.latency[dbt$Right.ear.wave.III.latency<999], xlab = "Right ear wave 3 latency", main="")
+shapiro.test(dbt$Right.ear.wave.III.latency[dbt$Right.ear.wave.III.latency<999])
+describe(dbt$Right.ear.wave.III.latency[dbt$Right.ear.wave.III.latency<999])
+summary(dbt$Right.ear.wave.III.latency[dbt$Right.ear.wave.III.latency<999])
+#ggplot(dbt[dbt$Right.ear.wave.III.latency<999], aes(x=dbt$Right.ear.wave.III.latency))+
+  #geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  #xlab("Right ear wave 3 latency")+
+  #geom_density()+
+  #xlim(0,3)+
+  #theme_bw()
+
+#Right wave 5 latency
+stem(dbt$Right.ear.wave.v.latency[dbt$Right.ear.wave.v.latency<999])
+hist(dbt$Right.ear.wave.v.latency[dbt$Right.ear.wave.v.latency<999], xlab = "Right ear wave 5 latency", main="")
+shapiro.test(dbt$Right.ear.wave.v.latency[dbt$Right.ear.wave.v.latency<999])
+describe(dbt$Right.ear.wave.v.latency[dbt$Right.ear.wave.v.latency<999])
+summary(dbt$Right.ear.wave.v.latency[dbt$Right.ear.wave.v.latency<999])
+
+#Left ear wave 1 latency
+stem(dbt$Left.ear.wave.I.latency[dbt$Left.ear.wave.I.latency<999])
+hist(dbt$Left.ear.wave.I.latency[dbt$Left.ear.wave.I.latency<999], xlab = "Left ear wave 1 latency", main="")
+shapiro.test(dbt$Left.ear.wave.I.latency[dbt$Left.ear.wave.I.latency<999])
+describe(dbt$Left.ear.wave.I.latency[dbt$Left.ear.wave.I.latency<999])
+summary(dbt$Left.ear.wave.I.latency[dbt$Left.ear.wave.I.latency<999])
+#ggplot(dbt[dbt$Left.ear.wave.I.latency<999], aes(x=dbt$Left.ear.wave.I.latency))+
+  #geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  #xlab("Left ear wave 1 latency")+
+  #geom_density()+
+  #xlim(0,3)+
+  #theme_bw()
+
+#Left wave 3 latency
+stem(dbt$Left.ear.wave.III.latency[dbt$Left.ear.wave.III.latency<999])
+hist(dbt$Left.ear.wave.III.latency[dbt$Left.ear.wave.III.latency<999], xlab = "Left ear wave 3 latency", main="")
+shapiro.test(dbt$Left.ear.wave.III.latency[dbt$Left.ear.wave.III.latency<999])
+describe(dbt$Left.ear.wave.III.latency[dbt$Left.ear.wave.III.latency<999])
+summary(dbt$Left.ear.wave.III.latency[dbt$Left.ear.wave.III.latency<999])
+#ggplot(dbt[dbt$Left.ear.wave.III.latency<999], aes(x=dbt$Left.ear.wave.III.latency))+
+  #geom_histogram(aes(y=..density..),fill="sky blue", color="black")+
+  #xlab("Left ear wave 3 latency")+
+  #geom_density()+
+  #xlim(0,3)+
+  #theme_bw()
+
+#Left wave 5 latency
+stem(dbt$Left.ear.wave.v.latency[dbt$Left.ear.wave.v.latency<999])
+hist(dbt$Left.ear.wave.v.latency[dbt$Left.ear.wave.v.latency<999], xlab = "Left ear wave 5 latency", main="")
+```
+
+#Genetic information
+```{r, echo=TRUE, message=TRUE}
+#Genetic study done
+addmargins(table(dbt$Genetic.study.done))
+addmargins(round(100*prop.table(table(dbt$Genetic.study.done)),1))
+#Polymorphism
+addmargins(table(dbt$G2677A))
+addmargins(round(100*prop.table(table(dbt$G2677A)),1))
+addmargins(table(dbt$C3435T))
+addmargins(round(100*prop.table(table(dbt$C3435T)),1))
+addmargins(table(dbt$C1236T))
+addmargins(round(100*prop.table(table(dbt$C1236T)),1))
+```
+
+#Univariate analysis information (Maternal information)
+```{r, echo=TRUE, message=TRUE}
+#First liveborn baby
+addmargins(table(dbt$First.liveborn.baby, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$First.liveborn.baby, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$First.liveborn.baby, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$First.liveborn.baby, dbt$abn.outcome)
+fisher.test(dbt$First.liveborn.baby, dbt$abn.outcome)
+#Multiple pregnancy
+addmargins(table(dbt$Multiple.pregnancy, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Multiple.pregnancy, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Multiple.pregnancy, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Multiple.pregnancy, dbt$abn.outcome)
+fisher.test(dbt$Multiple.pregnancy, dbt$abn.outcome)
+#At least 3 ANC
+addmargins(table(dbt$At.least.3.antenatal.visits, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$At.least.3.antenatal.visits, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$At.least.3.antenatal.visits, dbt$abn.outcome), col=c("light green","sky blue"))
+#Thyroid disorder
+addmargins(table(dbt$Thyroid.disorder, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Thyroid.disorder, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Thyroid.disorder, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Thyroid.disorder, dbt$abn.outcome)
+fisher.test(dbt$Thyroid.disorder, dbt$abn.outcome)
+#Diabetes mellitus
+addmargins(table(dbt$Diabetes.mellitus, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Diabetes.mellitus, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Diabetes.mellitus, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Diabetes.mellitus, dbt$abn.outcome)
+fisher.test(dbt$Diabetes.mellitus, dbt$abn.outcome)
+#HBSAg+
+addmargins(table(dbt$HBsAg.positive, dbt$abn.outcome))
+#HIV
+addmargins(table(dbt$HIV.positive, dbt$abn.outcome))
+#PIH
+addmargins(table(dbt$Pregnancy.induced.hypertension, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Pregnancy.induced.hypertension, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Pregnancy.induced.hypertension, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Pregnancy.induced.hypertension, dbt$abn.outcome)
+fisher.test(dbt$Pregnancy.induced.hypertension, dbt$abn.outcome)
+#APH
+addmargins(table(dbt$Antepartum.hemorrhage, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Antepartum.hemorrhage, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Antepartum.hemorrhage, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Antepartum.hemorrhage, dbt$abn.outcome)
+fisher.test(dbt$Antepartum.hemorrhage, dbt$abn.outcome)
+#Ecclampsia
+addmargins(table(dbt$Eclampsia, dbt$abn.outcome))
+#PPROM
+addmargins(table(dbt$Preterm.rupture.of.membranes, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Preterm.rupture.of.membranes, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Preterm.rupture.of.membranes, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Preterm.rupture.of.membranes, dbt$abn.outcome)
+fisher.test(dbt$Preterm.rupture.of.membranes, dbt$abn.outcome)
+#Chorioamnionitis
+addmargins(table(dbt$Clinical.chorioamnionitis, dbt$abn.outcome))
+#C-section
+addmargins(table(dbt$C.section, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$C.section, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$C.section, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$C.section, dbt$abn.outcome)
+fisher.test(dbt$C.section, dbt$abn.outcome)
+#PPV at birth
+addmargins(table(dbt$PPV.at.birth, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$PPV.at.birth, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$PPV.at.birth, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$PPV.at.birth, dbt$abn.outcome)
+fisher.test(dbt$PPV.at.birth, dbt$abn.outcome)
+#Chest compression
+addmargins(table(dbt$Chest.compression.at.birth, dbt$abn.outcome))
+#Saline bolus
+addmargins(table(dbt$Saline.bolus.at.birth, dbt$abn.outcome))
+#Intubation at birth
+addmargins(table(dbt$Intubation.at.birth, dbt$abn.outcome))
+#Apgar score at 1 minute
+describeBy(dbt$Apgar.score.at.1.minute, dbt$abn.outcome)
+tapply(dbt$Apgar.score.at.1.minute, dbt$abn.outcome, summary)
+ggplot(dbt, aes(x=dbt$Apgar.score.at.1.minute, fill=dbt$abn.outcome))+
+  geom_density(alpha=0.3)+
+  theme_bw()
+wilcox.test(dbt$Apgar.score.at.1.minute~dbt$abn.outcome)
+#Apgar score at 5 minute
+describeBy(dbt$Apgar.score.at.5.minute, dbt$abn.outcome)
+tapply(dbt$Apgar.score.at.5.minute, dbt$abn.outcome, summary)
+ggplot(dbt, aes(x=dbt$Apgar.score.at.5.minute, fill=dbt$abn.outcome))+
+  geom_density(alpha=0.3)+
+  theme_bw()
+wilcox.test(dbt$Apgar.score.at.5.minute~dbt$abn.outcome)
+```
+
+#Univariate analysis information (Neonatal information)
+```{r, echo=TRUE, message=TRUE}
+#Birth weight
+describeBy(dbt$Birth.weight..g., dbt$abn.outcome)
+tapply(dbt$Birth.weight..g., dbt$abn.outcome, summary)
+ggplot(dbt, aes(x=dbt$Birth.weight..g., fill=dbt$abn.outcome))+
+  geom_density(alpha=0.3)+
+  theme_bw()+
+  xlim(0,5000)
+var.test(dbt$Birth.weight..g.~dbt$abn.outcome)
+t.test(dbt$Birth.weight..g.~dbt$abn.outcome, var.equal = TRUE)
+#Gestation
+describeBy(dbt$Gestation.by.LMP, dbt$abn.outcome)
+tapply(dbt$Gestation.by.LMP, dbt$abn.outcome, summary)
+ggplot(dbt, aes(x=dbt$Gestation.by.LMP, fill=dbt$abn.outcome))+
+  geom_density(alpha=0.3)+
+  theme_bw()+
+  xlim(30,50)
+var.test(dbt$Gestation.by.LMP~dbt$abn.outcome)
+t.test(dbt$Gestation.by.LMP~dbt$abn.outcome, var.equal = TRUE)
+#Head circumference at birth
+describeBy(dbt$Head.circumference.at.birth, dbt$abn.outcome)
+tapply(dbt$Head.circumference.at.birth, dbt$abn.outcome, summary)
+ggplot(dbt, aes(x=dbt$Head.circumference.at.birth, fill=dbt$abn.outcome))+
+  geom_density(alpha=0.3)+
+  theme_bw()+
+  xlim(20,40)
+#Male baby
+addmargins(table(dbt$Male.baby, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Male.baby, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Male.baby, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Male.baby, dbt$abn.outcome)
+fisher.test(dbt$Male.baby, dbt$abn.outcome)
+#NICU care more than 24 h
+addmargins(table(dbt$NICU.care.more.than.24.h, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$NICU.care.more.than.24.h, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$NICU.care.more.than.24.h, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$NICU.care.more.than.24.h, dbt$abn.outcome)
+fisher.test(dbt$NICU.care.more.than.24.h, dbt$abn.outcome)
+#Oxygen after birth resusictation
+addmargins(table(dbt$Oxygen.after.birth.resusictation, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Oxygen.after.birth.resusictation, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Oxygen.after.birth.resusictation, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Oxygen.after.birth.resusictation, dbt$abn.outcome)
+fisher.test(dbt$Oxygen.after.birth.resusictation, dbt$abn.outcome)
+#NIV
+addmargins(table(dbt$Nasal.CPAP.or.ventilation, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Nasal.CPAP.or.ventilation, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Nasal.CPAP.or.ventilation, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Nasal.CPAP.or.ventilation, dbt$abn.outcome)
+fisher.test(dbt$Nasal.CPAP.or.ventilation, dbt$abn.outcome)
+#ET ventilation
+addmargins(table(dbt$ET.ventilation, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$ET.ventilation, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$ET.ventilation, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$ET.ventilation, dbt$abn.outcome)
+fisher.test(dbt$ET.ventilation, dbt$abn.outcome)
+#Antibiotics for > 3 days
+addmargins(table(dbt$Antibotics.for.more.than.3.days, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Antibotics.for.more.than.3.days, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Antibotics.for.more.than.3.days, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Antibotics.for.more.than.3.days, dbt$abn.outcome)
+fisher.test(dbt$Antibotics.for.more.than.3.days, dbt$abn.outcome)
+#Seizures
+addmargins(table(dbt$Seizures, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Seizures, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Seizures, dbt$abn.outcome), col=c("light green","sky blue"))
+#Hypoglycemia
+addmargins(table(dbt$Hypoglycemia, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Hypoglycemia, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Hypoglycemia, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Hypoglycemia, dbt$abn.outcome)
+fisher.test(dbt$Hypoglycemia, dbt$abn.outcome)
+#Inotropic support
+addmargins(table(dbt$Inotropic.support, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Inotropic.support, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Inotropic.support, dbt$abn.outcome), col=c("light green","sky blue"))
+#Asymptomatic polycythemia
+addmargins(table(dbt$Asymptomatic.polycythemia, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Asymptomatic.polycythemia, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Asymptomatic.polycythemia, dbt$abn.outcome), col=c("light green","sky blue"))
+#Hypernatremia
+addmargins(table(dbt$Hypernatremia, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Hypernatremia, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Hypernatremia, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Hypernatremia, dbt$abn.outcome)
+fisher.test(dbt$Hypernatremia, dbt$abn.outcome)
+#Early onset sepsis
+addmargins(table(dbt$Early.onset.sepsis, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Early.onset.sepsis, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Early.onset.sepsis, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Early.onset.sepsis, dbt$abn.outcome)
+fisher.test(dbt$Early.onset.sepsis, dbt$abn.outcome)
+#Late onset sepsis
+addmargins(table(dbt$Late.onset.sepsis, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Late.onset.sepsis, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Late.onset.sepsis, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Late.onset.sepsis, dbt$abn.outcome)
+fisher.test(dbt$Late.onset.sepsis, dbt$abn.outcome)
+```
+
+#Univariate analysis information (Family information)
+```{r, echo=TRUE, message=TRUE}
+#Maternal education
+addmargins(table(dbt$Mother.education, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Mother.education, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Mother.education, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Mother.education, dbt$abn.outcome)
+fisher.test(dbt$Mother.education, dbt$abn.outcome)
+#Father education
+addmargins(table(dbt$Father.education, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Father.education, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Father.education, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Father.education, dbt$abn.outcome)
+fisher.test(dbt$Father.education, dbt$abn.outcome)
+#Mother occupation
+addmargins(table(dbt$Mother.occupation, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Mother.occupation, dbt$abn.outcome),2),2),3)
+#Father occupation
+addmargins(table(dbt$Father.occupation, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Father.occupation, dbt$abn.outcome),2),2),3)
+#Mother age
+describeBy(dbt$Mother.age, dbt$abn.outcome)
+tapply(dbt$Mother.age, dbt$abn.outcome, summary)
+ggplot(dbt, aes(x=dbt$Mother.age, fill=dbt$abn.outcome))+
+  geom_density(alpha=0.3)+
+  theme_bw()+
+  xlim(10,40)
+var.test(dbt$Mother.age~dbt$abn.outcome)
+t.test(dbt$Mother.age~dbt$abn.outcome, var.equal = TRUE)
+#Father age
+describeBy(dbt$Father.age, dbt$abn.outcome)
+tapply(dbt$Father.age, dbt$abn.outcome, summary)
+ggplot(dbt, aes(x=dbt$Father.age, fill=dbt$abn.outcome))+
+  geom_density(alpha=0.3)+
+  theme_bw()+
+  xlim(15,45)
+var.test(dbt$Father.age~dbt$abn.outcome)
+t.test(dbt$Father.age~dbt$abn.outcome, var.equal = TRUE)
+#Electricity
+addmargins(table(dbt$Electricity, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Electricity, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Electricity, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Electricity, dbt$abn.outcome)
+fisher.test(dbt$Electricity, dbt$abn.outcome)
+#Pressure cooker
+addmargins(table(dbt$Pressure.cooker, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Pressure.cooker, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Pressure.cooker, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Pressure.cooker, dbt$abn.outcome)
+fisher.test(dbt$Pressure.cooker, dbt$abn.outcome)
+#Mattress
+addmargins(table(dbt$Mattress, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Mattress, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Mattress, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Mattress, dbt$abn.outcome)
+fisher.test(dbt$Mattress, dbt$abn.outcome)
+#Cot/bed
+addmargins(table(dbt$Cot.or.bed, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Cot.or.bed, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Cot.or.bed, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Cot.or.bed, dbt$abn.outcome)
+fisher.test(dbt$Cot.or.bed, dbt$abn.outcome)
+#Chair
+addmargins(table(dbt$Chair, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Chair, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Chair, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Chair, dbt$abn.outcome)
+fisher.test(dbt$Chair, dbt$abn.outcome)
+#Electric fan
+addmargins(table(dbt$Electric.fan, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Electric.fan, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Electric.fan, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Electric.fan, dbt$abn.outcome)
+fisher.test(dbt$Electric.fan, dbt$abn.outcome)
+#Table
+addmargins(table(dbt$Table, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Table, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Table, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Table, dbt$abn.outcome)
+fisher.test(dbt$Table, dbt$abn.outcome)
+#BW TV
+addmargins(table(dbt$BW.television, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$BW.television, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$BW.television, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$BW.television, dbt$abn.outcome)
+fisher.test(dbt$BW.television, dbt$abn.outcome)
+#Radio
+addmargins(table(dbt$Radio, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Radio, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Radio, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Radio, dbt$abn.outcome)
+fisher.test(dbt$Radio, dbt$abn.outcome)
+#Sewing machine
+addmargins(table(dbt$Sewing.machine, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Sewing.machine, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Sewing.machine, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Sewing.machine, dbt$abn.outcome)
+fisher.test(dbt$Sewing.machine, dbt$abn.outcome)
+#Color TV
+addmargins(table(dbt$Color.television, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Color.television, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Color.television, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Color.television, dbt$abn.outcome)
+fisher.test(dbt$Color.television, dbt$abn.outcome)
+#Any other telephone
+addmargins(table(dbt$Any.other.telephone, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Any.other.telephone, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Any.other.telephone, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Any.other.telephone, dbt$abn.outcome)
+fisher.test(dbt$Any.other.telephone, dbt$abn.outcome)
+#Mobile phone
+addmargins(table(dbt$Mobile.telephone, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Mobile.telephone, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Mobile.telephone, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Mobile.telephone, dbt$abn.outcome)
+fisher.test(dbt$Mobile.telephone, dbt$abn.outcome)
+#Refrigerator
+addmargins(table(dbt$Refrigerator, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Refrigerator, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Refrigerator, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Refrigerator, dbt$abn.outcome)
+fisher.test(dbt$Refrigerator, dbt$abn.outcome)
+#Computer
+addmargins(table(dbt$Computer, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Computer, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Computer, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Computer, dbt$abn.outcome)
+fisher.test(dbt$Computer, dbt$abn.outcome)
+#Bicycle
+addmargins(table(dbt$Bicycle, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Bicycle, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Bicycle, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Bicycle, dbt$abn.outcome)
+fisher.test(dbt$Bicycle, dbt$abn.outcome)
+#Watch or clock
+addmargins(table(dbt$Watch.or.clock, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Watch.or.clock, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Watch.or.clock, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Watch.or.clock, dbt$abn.outcome)
+fisher.test(dbt$Watch.or.clock, dbt$abn.outcome)
+#Animal cart
+addmargins(table(dbt$Animal.driven.cart, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Animal.driven.cart, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Animal.driven.cart, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Animal.driven.cart, dbt$abn.outcome)
+fisher.test(dbt$Animal.driven.cart, dbt$abn.outcome)
+#Motocycle/Scooter
+addmargins(table(dbt$Motorcycle.or.scooter, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Motorcycle.or.scooter, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Motorcycle.or.scooter, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Motorcycle.or.scooter, dbt$abn.outcome)
+fisher.test(dbt$Motorcycle.or.scooter, dbt$abn.outcome)
+#Water pump
+addmargins(table(dbt$Water.pump, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Water.pump, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Water.pump, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Water.pump, dbt$abn.outcome)
+fisher.test(dbt$Water.pump, dbt$abn.outcome)
+#Car
+addmargins(table(dbt$Car, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Car, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Car, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Car, dbt$abn.outcome)
+fisher.test(dbt$Car, dbt$abn.outcome)
+#Tractor
+addmargins(table(dbt$Tractor, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Tractor, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Tractor, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Tractor, dbt$abn.outcome)
+fisher.test(dbt$Tractor, dbt$abn.outcome)
+#Threshor
+addmargins(table(dbt$Thresher, dbt$abn.outcome))
+100*round(prop.table(addmargins(table(dbt$Thresher, dbt$abn.outcome),2),2),3)
+mosaicplot(table(dbt$Thresher, dbt$abn.outcome), col=c("light green","sky blue"))
+chisq.test(dbt$Thresher, dbt$abn.outcome)
+fisher.test(dbt$Thresher, dbt$abn.outcome)
+```
+
+#Univariate analysis information (Jaundice information)
+```{r, echo=TRUE, message=TRUE}
+describeBy(dbt$Peak.serum.bilirubin, dbt$abn.outcome)
+tapply(dbt$Peak.serum.bilirubin, dbt$abn.outcome, summary)
+ggplot(dbt, aes(x=dbt$Peak.serum.bilirubin, fill=dbt$abn.outcome))+
+  geom_density(alpha=0.3)+
+  theme_bw()+
+  xlim(10,40)+
+  xlab("Peak serum bilirubin (mg/dL)")+
+  scale_fill_discrete(name="Abnormal outcome", breaks=c(1,0), labels=c("Yes", "No"))
+var.test(dbt$Peak.serum.bilirubin~dbt$abn.outcome)
+t.test(dbt$Peak.serum.bilirubin~dbt$abn.outcome, var.equal = FALSE)
